@@ -2,35 +2,71 @@ import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, TextInput, TextInputProps, Pressable } from 'react-native';
 import { useStyles } from './style';
 import { useTheme } from '@theme/themeProvider';
+import OTPBox from '@components/animated/OTPTextInput';
+import { withSpring, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import useOTPAnimation from '@components/animated/OTPTextInput/OTPAnimations';
 
-const OTP_LENGTH = 6;
-const OTP_TIMEOUT = 30; // 30 seconds
+const OTP_LENGTH = 4;
+const OTP_TIMEOUT = 30;
 
 function OTPScreen() {
   const { theme } = useTheme();
   const styles = useStyles();
+
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [timer, setTimer] = useState<number>(OTP_TIMEOUT);
   const inputRef = useRef<(TextInput | null)[]>([]);
 
+  const { translateYValues, opacityValues } = useOTPAnimation(OTP_LENGTH);
+
   useEffect(() => {
     if (timer === 0) return;
-
-    const interval = setInterval(() => {
-      setTimer(prev => prev - 1);
-    }, 1000);
-
+    const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
-  const handleChange = (text: string, index: number) => {
-    const newOtp = [...otp];
-    newOtp[index] = text;
-    setOtp(newOtp);
+  const animateIn = (index: number) => {
+    'worklet';
+    translateYValues[index].value = 40;
+    opacityValues[index].value = 0;
 
-    // Auto-advance to next input
-    if (text && index < OTP_LENGTH - 1) {
-      inputRef.current[index + 1]?.focus();
+    translateYValues[index].value = withSpring(0, {
+      damping: 14,
+      stiffness: 180,
+      mass: 0.6,
+    });
+    opacityValues[index].value = withTiming(1, { duration: 150 });
+  };
+
+  const animateOut = (index: number, callback?: () => void) => {
+    'worklet';
+    // translateYValues[index].value = withTiming(-40, { duration: 150 });
+    opacityValues[index].value = withTiming(0, { duration: 10 }, finished => {
+      if (finished && callback) scheduleOnRN(callback);
+    });
+  };
+
+  const handleChange = (text: string, index: number) => {
+    if (text) {
+      setOtp(prev => {
+        const updated = [...prev];
+        updated[index] = text;
+        return updated;
+      });
+      animateIn(index);
+
+      if (index < OTP_LENGTH - 1) {
+        inputRef.current[index + 1]?.focus();
+      }
+    } else {
+      animateOut(index, () => {
+        setOtp(prev => {
+          const updated = [...prev];
+          updated[index] = '';
+          return updated;
+        });
+      });
     }
   };
 
@@ -39,6 +75,13 @@ function OTPScreen() {
     index: number,
   ) => {
     if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
+      animateOut(index - 1, () => {
+        setOtp(prev => {
+          const updated = [...prev];
+          updated[index - 1] = '';
+          return updated;
+        });
+      });
       inputRef.current[index - 1]?.focus();
     }
   };
@@ -46,9 +89,15 @@ function OTPScreen() {
   const handleResend = () => {
     if (timer > 0) return;
 
-    setTimer(OTP_TIMEOUT);
-    setOtp(Array(OTP_LENGTH).fill(''));
-    inputRef.current[0]?.focus();
+    otp.forEach((digit, i) => {
+      if (digit) setTimeout(() => animateOut(i), i * 50);
+    });
+
+    setTimeout(() => {
+      setOtp(Array(OTP_LENGTH).fill(''));
+      setTimer(OTP_TIMEOUT);
+      inputRef.current[0]?.focus();
+    }, OTP_LENGTH * 50 + 150);
 
     console.log('OTP Resent');
   };
@@ -57,22 +106,24 @@ function OTPScreen() {
     <View style={styles.container}>
       <View style={styles.otpContainer}>
         {otp.map((digit, index) => (
-          <TextInput
+          <OTPBox
             key={index}
-            ref={ref => {
+            digit={digit}
+            translateY={translateYValues[index]}
+            opacity={opacityValues[index]}
+            inputRef={ref => {
               inputRef.current[index] = ref;
             }}
-            value={digit}
-            style={styles.input}
-            maxLength={1}
-            keyboardType="number-pad"
-            textAlign="center"
+            boxStyle={styles.input}
+            textColor={theme.text.primary}
+            cursorColor={theme.color.primary}
             onChangeText={text => handleChange(text, index)}
             onKeyPress={e => handleKeyPress(e, index)}
-            cursorColor={theme.color.primary}
+            caretHidden={true}
           />
         ))}
       </View>
+
       <Pressable onPress={handleResend}>
         <Text style={styles.resend}>
           {timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}

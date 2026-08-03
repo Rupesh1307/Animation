@@ -21,7 +21,7 @@ export const useStyles = () => {
       borderRadius: 8,
       borderWidth: 1,
       borderColor: theme.border.primary,
-      textAlign: 'center',
+    //   textAlign: 'center',
       fontFamily: theme.fonts.inter.semiBold,
       fontSize: 18,
       color: theme.text.primary,

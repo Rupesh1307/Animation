@@ -7,7 +7,16 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "postinstall": "patch-package"
+  },
+  "codegenConfig": {
+    "name": "AnimationSpec",
+    "type": "components",
+    "jsSrcsDir": "specs",
+    "android": {
+      "javaPackageName": "com.animation.spec"
+    }
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.83.1",
@@ -15,8 +24,10 @@
     "@react-navigation/native": "^7.2.2",
     "@react-navigation/native-stack": "^7.14.12",
     "@shopify/react-native-skia": "^2.4.14",
+    "patch-package": "^8.0.1",
     "react": "19.2.0",
     "react-native": "0.83.1",
+    "react-native-date-picker": "^5.0.13",
     "react-native-mmkv": "^4.3.1",
     "react-native-nitro-modules": "^0.35.7",
     "react-native-reanimated": "^4.2.1",

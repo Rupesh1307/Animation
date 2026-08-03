@@ -1,0 +1,394 @@
+diff --git a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/DatePickerModuleImpl.java b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/DatePickerModuleImpl.java
+index b8a2a80..481ffde 100644
+--- a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/DatePickerModuleImpl.java
++++ b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/DatePickerModuleImpl.java
+@@ -112,7 +112,7 @@ public class DatePickerModuleImpl {
+     }
+ 
+     private PickerView createPicker(ReadableMap props){
+-        int height = 180;
++        int height = 60 * getVisibleItemCount(props);
+         LinearLayout.LayoutParams rootLayoutParams = new LinearLayout.LayoutParams(
+                 RelativeLayout.LayoutParams.MATCH_PARENT,
+                 Utils.toDp(height));
+@@ -141,6 +141,14 @@ public class DatePickerModuleImpl {
+         return picker;
+     }
+ 
++    private int getVisibleItemCount(ReadableMap props) {
++        if (!props.hasKey("visibleItemCount") || props.isNull("visibleItemCount")) {
++            return 3;
++        }
++        int count = Math.max(3, props.getInt("visibleItemCount"));
++        return count % 2 == 0 ? count + 1 : count;
++    }
++
+     private void setEnabledConfirmButton(boolean enabled) {
+         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(enabled);
+     }
+diff --git a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/PickerView.java b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/PickerView.java
+index 5061238..478b3b8 100644
+--- a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/PickerView.java
++++ b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/PickerView.java
+@@ -16,6 +16,7 @@ import com.henninghall.date_picker.props.DateProp;
+ import com.henninghall.date_picker.props.LocaleProp;
+ import com.henninghall.date_picker.props.ModeProp;
+ import com.henninghall.date_picker.props.TextColorProp;
++import com.henninghall.date_picker.props.VisibleItemCountProp;
+ import com.henninghall.date_picker.ui.SpinnerStateListener;
+ import com.henninghall.date_picker.ui.UIManager;
+ import com.henninghall.date_picker.ui.Accessibility;
+@@ -65,6 +66,10 @@ public class PickerView extends RelativeLayout {
+             uiManager.setDividerColor(state.getDividerColor());
+         }
+ 
++        if (didUpdate(VisibleItemCountProp.name)) {
++            uiManager.setVisibleItemCount(state.getVisibleItemCount());
++        }
++
+         uiManager.setWheelsToDate();
+ 
+         updatedProps = new ArrayList<>();
+diff --git a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/State.java b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/State.java
+index 110e641..edb5d5b 100644
+--- a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/State.java
++++ b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/State.java
+@@ -16,6 +16,7 @@ import com.henninghall.date_picker.props.ModeProp;
+ import com.henninghall.date_picker.props.Prop;
+ import com.henninghall.date_picker.props.TextColorProp;
+ import com.henninghall.date_picker.props.TimezoneOffsetInMinutesProp;
++import com.henninghall.date_picker.props.VisibleItemCountProp;
+ 
+ import java.text.SimpleDateFormat;
+ import java.util.Calendar;
+@@ -39,6 +40,7 @@ public class State {
+     private final IdProp idProp = new IdProp();
+ 
+     private final DividerColorProp dividerColorProp = new DividerColorProp();
++    private final VisibleItemCountProp visibleItemCountProp = new VisibleItemCountProp();
+ 
+     private final HashMap props = new HashMap<String, Prop>() {{
+         put(DateProp.name, dateProp);
+@@ -53,6 +55,7 @@ public class State {
+         put(Is24hourSourceProp.name, is24hourSourceProp);
+         put(IdProp.name, idProp);
+         put(DividerColorProp.name, dividerColorProp);
++        put(VisibleItemCountProp.name, visibleItemCountProp);
+     }};
+     public DerivedData derived;
+ 
+@@ -166,4 +169,8 @@ public class State {
+     public String getDividerColor() {
+         return dividerColorProp.getValue();
+     }
++
++    public int getVisibleItemCount() {
++        return visibleItemCountProp.getValue();
++    }
+ }
+diff --git a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/generated/NumberPicker.java b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/generated/NumberPicker.java
+index e4b48ef..8c9084d 100644
+--- a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/generated/NumberPicker.java
++++ b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/generated/NumberPicker.java
+@@ -116,7 +116,7 @@ public class NumberPicker extends LinearLayout {
+     /**
+      * The number of items show in the selector wheel.
+      */
+-    private static final int SELECTOR_WHEEL_ITEM_COUNT = 3;
++    private static final int DEFAULT_SELECTOR_WHEEL_ITEM_COUNT = 3;
+ 
+     /**
+      * The default update interval during long press.
+@@ -126,7 +126,7 @@ public class NumberPicker extends LinearLayout {
+     /**
+      * The index of the middle selector item.
+      */
+-    private static final int SELECTOR_MIDDLE_ITEM_INDEX = SELECTOR_WHEEL_ITEM_COUNT / 2;
++    private int mSelectorMiddleItemIndex = DEFAULT_SELECTOR_WHEEL_ITEM_COUNT / 2;
+ 
+     /**
+      * The coefficient by which to adjust (divide) the max fling velocity.
+@@ -331,7 +331,7 @@ public class NumberPicker extends LinearLayout {
+     /**
+      * The selector indices whose value are show by the selector.
+      */
+-    private final int[] mSelectorIndices = new int[SELECTOR_WHEEL_ITEM_COUNT];
++    private int[] mSelectorIndices = new int[DEFAULT_SELECTOR_WHEEL_ITEM_COUNT];
+ 
+     /**
+      * The {@link Paint} for drawing the selector.
+@@ -965,7 +965,7 @@ public class NumberPicker extends LinearLayout {
+                             performClick();
+                         } else {
+                             int selectorIndexOffset = (eventY / mSelectorElementHeight)
+-                                    - SELECTOR_MIDDLE_ITEM_INDEX;
++                                    - mSelectorMiddleItemIndex;
+                             if (selectorIndexOffset > 0) {
+                                 changeValueByOne(true);
+                                 mPressedStateHelper.buttonTapped(
+@@ -1139,12 +1139,12 @@ public class NumberPicker extends LinearLayout {
+         int[] selectorIndices = mSelectorIndices;
+         int startScrollOffset = mCurrentScrollOffset;
+         if (!mWrapSelectorWheel && y > 0
+-                && selectorIndices[SELECTOR_MIDDLE_ITEM_INDEX] <= mMinValue) {
++                && selectorIndices[mSelectorMiddleItemIndex] <= mMinValue) {
+             mCurrentScrollOffset = mInitialScrollOffset;
+             return;
+         }
+         if (!mWrapSelectorWheel && y < 0
+-                && selectorIndices[SELECTOR_MIDDLE_ITEM_INDEX] >= mMaxValue) {
++                && selectorIndices[mSelectorMiddleItemIndex] >= mMaxValue) {
+             mCurrentScrollOffset = mInitialScrollOffset;
+             return;
+         }
+@@ -1152,16 +1152,16 @@ public class NumberPicker extends LinearLayout {
+         while (mCurrentScrollOffset - mInitialScrollOffset > mSelectorTextGapHeight) {
+             mCurrentScrollOffset -= mSelectorElementHeight;
+             decrementSelectorIndices(selectorIndices);
+-            setValueInternal(selectorIndices[SELECTOR_MIDDLE_ITEM_INDEX], true);
+-            if (!mWrapSelectorWheel && selectorIndices[SELECTOR_MIDDLE_ITEM_INDEX] <= mMinValue) {
++            setValueInternal(selectorIndices[mSelectorMiddleItemIndex], true);
++            if (!mWrapSelectorWheel && selectorIndices[mSelectorMiddleItemIndex] <= mMinValue) {
+                 mCurrentScrollOffset = mInitialScrollOffset;
+             }
+         }
+         while (mCurrentScrollOffset - mInitialScrollOffset < -mSelectorTextGapHeight) {
+             mCurrentScrollOffset += mSelectorElementHeight;
+             incrementSelectorIndices(selectorIndices);
+-            setValueInternal(selectorIndices[SELECTOR_MIDDLE_ITEM_INDEX], true);
+-            if (!mWrapSelectorWheel && selectorIndices[SELECTOR_MIDDLE_ITEM_INDEX] >= mMaxValue) {
++            setValueInternal(selectorIndices[mSelectorMiddleItemIndex], true);
++            if (!mWrapSelectorWheel && selectorIndices[mSelectorMiddleItemIndex] >= mMaxValue) {
+                 mCurrentScrollOffset = mInitialScrollOffset;
+             }
+         }
+@@ -1394,6 +1394,27 @@ public class NumberPicker extends LinearLayout {
+ 
+     }
+ 
++    /**
++     * Sets the number of values rendered in the selector wheel. An odd number
++     * is required so that the current value occupies the center position.
++     */
++    public void setVisibleItemCount(int count) {
++        int normalizedCount = Math.max(DEFAULT_SELECTOR_WHEEL_ITEM_COUNT, count);
++        if (normalizedCount % 2 == 0) {
++            normalizedCount++;
++        }
++        if (mSelectorIndices.length == normalizedCount) {
++            return;
++        }
++
++        mSelectorMiddleItemIndex = normalizedCount / 2;
++        mSelectorIndices = new int[normalizedCount];
++        updateWrapSelectorWheel();
++        initializeSelectorWheel();
++        requestLayout();
++        invalidate();
++    }
++
+     /**
+      * Whether or not the selector wheel should be wrapped is determined by user choice and whether
+      * the choice is allowed. The former comes from {@link #setWrapSelectorWheel(boolean)}, the
+@@ -1646,8 +1667,8 @@ public class NumberPicker extends LinearLayout {
+             // item. Otherwise, if the user starts editing the text via the
+             // IME they may see a dimmed version of the old value intermixed
+             // with the new one.
+-            if ((showSelectorWheel && i != SELECTOR_MIDDLE_ITEM_INDEX) ||
+-                    (i == SELECTOR_MIDDLE_ITEM_INDEX && mInputText.getVisibility() != VISIBLE)) {
++            if ((showSelectorWheel && i != mSelectorMiddleItemIndex) ||
++                    (i == mSelectorMiddleItemIndex && mInputText.getVisibility() != VISIBLE)) {
+                 canvas.drawText(scrollSelectorValue, x, y, mSelectorWheelPaint);
+             }
+             y += mSelectorElementHeight;
+@@ -1773,7 +1794,7 @@ public class NumberPicker extends LinearLayout {
+         int[] selectorIndices = mSelectorIndices;
+         int current = getValue();
+         for (int i = 0; i < mSelectorIndices.length; i++) {
+-            int selectorIndex = current + (i - SELECTOR_MIDDLE_ITEM_INDEX);
++            int selectorIndex = current + (i - mSelectorMiddleItemIndex);
+             if (mWrapSelectorWheel) {
+                 selectorIndex = getWrappedSelectorIndex(selectorIndex);
+             }
+@@ -1853,7 +1874,7 @@ public class NumberPicker extends LinearLayout {
+         // mInputText
+         int editTextTextPosition = mInputText.getBaseline() + mInputText.getTop();
+         mInitialScrollOffset = editTextTextPosition
+-                - (mSelectorElementHeight * SELECTOR_MIDDLE_ITEM_INDEX);
++                - (mSelectorElementHeight * mSelectorMiddleItemIndex);
+         mCurrentScrollOffset = mInitialScrollOffset;
+         updateInputTextView();
+     }
+diff --git a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/pickers/Picker.java b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/pickers/Picker.java
+index 2797d42..1b07a56 100644
+--- a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/pickers/Picker.java
++++ b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/pickers/Picker.java
+@@ -23,6 +23,7 @@ public interface Picker {
+     void setWrapSelectorWheel(boolean wrapSelectorWheel);
+     boolean isSpinning();
+     void setDividerColor(String color);
++    void setVisibleItemCount(int count);
+     interface OnValueChangeListenerInScrolling {
+         void onValueChangeInScrolling(Picker picker, int oldVal, int newVal);
+     }
+diff --git a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/props/VisibleItemCountProp.java b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/props/VisibleItemCountProp.java
+new file mode 100644
+index 0000000..d149907
+--- /dev/null
++++ b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/props/VisibleItemCountProp.java
+@@ -0,0 +1,16 @@
++package com.henninghall.date_picker.props;
++
++import com.facebook.react.bridge.Dynamic;
++
++public class VisibleItemCountProp extends Prop<Integer> {
++    public static final String name = "visibleItemCount";
++
++    public VisibleItemCountProp() {
++        super(3);
++    }
++
++    @Override
++    public Integer toValue(Dynamic value) {
++        return value.asInt();
++    }
++}
+diff --git a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/ui/UIManager.java b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/ui/UIManager.java
+index 5601d88..9ee4381 100644
+--- a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/ui/UIManager.java
++++ b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/ui/UIManager.java
+@@ -83,4 +83,8 @@ public class UIManager {
+     public void setDividerColor(String color) {
+         wheels.applyOnAll(new SetDividerColor(color));
+     }
++
++    public void setVisibleItemCount(int count) {
++        wheels.setVisibleItemCount(count);
++    }
+ }
+diff --git a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/ui/Wheels.java b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/ui/Wheels.java
+index a65399b..5acf056 100644
+--- a/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/ui/Wheels.java
++++ b/node_modules/react-native-date-picker/android/src/main/java/com/henninghall/date_picker/ui/Wheels.java
+@@ -61,6 +61,10 @@ public class Wheels {
+         for (Wheel wheel: getAll()) function.apply(wheel);
+     }
+ 
++    void setVisibleItemCount(int count) {
++        for (Wheel wheel: getAll()) wheel.picker.setVisibleItemCount(count);
++    }
++
+     void applyOnVisible(WheelFunction function) {
+         for(Wheel wheel: getAll()) {
+             if(wheel.visible()) function.apply(wheel);
+diff --git a/node_modules/react-native-date-picker/android/src/newarch/java/com/henninghall/date_picker/DatePickerManager.java b/node_modules/react-native-date-picker/android/src/newarch/java/com/henninghall/date_picker/DatePickerManager.java
+index 4bc2935..2b051c4 100644
+--- a/node_modules/react-native-date-picker/android/src/newarch/java/com/henninghall/date_picker/DatePickerManager.java
++++ b/node_modules/react-native-date-picker/android/src/newarch/java/com/henninghall/date_picker/DatePickerManager.java
+@@ -16,6 +16,7 @@ import com.henninghall.date_picker.props.MinuteIntervalProp;
+ import com.henninghall.date_picker.props.ModeProp;
+ import com.henninghall.date_picker.props.TextColorProp;
+ import com.henninghall.date_picker.props.TimezoneOffsetInMinutesProp;
++import com.henninghall.date_picker.props.VisibleItemCountProp;
+ 
+ import java.util.Map;
+ 
+@@ -33,7 +34,7 @@ public class DatePickerManager extends SimpleViewManager<PickerView> {
+ 
+     @ReactPropGroup(names = { DateProp.name, ModeProp.name, LocaleProp.name, MaximumDateProp.name,
+             MinimumDateProp.name, TextColorProp.name, TimezoneOffsetInMinutesProp.name, MinuteIntervalProp.name,
+-            Is24hourSourceProp.name, IdProp.name, DividerColorProp.name
++            Is24hourSourceProp.name, IdProp.name, DividerColorProp.name, VisibleItemCountProp.name
+     })
+     public void setProps(PickerView view, int index, Dynamic value) {
+         DatePickerManagerImpl.updateProp("setProps", view, index, value, getClass());
+@@ -60,4 +61,3 @@ public class DatePickerManager extends SimpleViewManager<PickerView> {
+ 
+ }
+ 
+-
+diff --git a/node_modules/react-native-date-picker/android/src/oldarch/java/com/henninghall/date_picker/DatePickerManager.java b/node_modules/react-native-date-picker/android/src/oldarch/java/com/henninghall/date_picker/DatePickerManager.java
+index f5db5e8..1c0a3a5 100644
+--- a/node_modules/react-native-date-picker/android/src/oldarch/java/com/henninghall/date_picker/DatePickerManager.java
++++ b/node_modules/react-native-date-picker/android/src/oldarch/java/com/henninghall/date_picker/DatePickerManager.java
+@@ -24,6 +24,7 @@ import com.henninghall.date_picker.props.MinuteIntervalProp;
+ import com.henninghall.date_picker.props.ModeProp;
+ import com.henninghall.date_picker.props.TextColorProp;
+ import com.henninghall.date_picker.props.TimezoneOffsetInMinutesProp;
++import com.henninghall.date_picker.props.VisibleItemCountProp;
+ 
+ 
+ import java.util.Map;
+@@ -42,7 +43,7 @@ public class DatePickerManager extends SimpleViewManager<PickerView>  {
+ 
+     @ReactPropGroup(names = { DateProp.name, ModeProp.name, LocaleProp.name, MaximumDateProp.name,
+             MinimumDateProp.name, TextColorProp.name, TimezoneOffsetInMinutesProp.name, MinuteIntervalProp.name,
+-            Is24hourSourceProp.name, DividerColorProp.name
++            Is24hourSourceProp.name, DividerColorProp.name, VisibleItemCountProp.name
+     })
+     public void setProps(PickerView view, int index, Dynamic value) {
+         DatePickerManagerImpl.setProps(view, index, value, getClass());
+@@ -86,4 +87,3 @@ public class DatePickerManager extends SimpleViewManager<PickerView>  {
+ 
+ }
+ 
+-
+diff --git a/node_modules/react-native-date-picker/index.d.ts b/node_modules/react-native-date-picker/index.d.ts
+index 0ab796f..3b96677 100644
+--- a/node_modules/react-native-date-picker/index.d.ts
++++ b/node_modules/react-native-date-picker/index.d.ts
+@@ -98,6 +98,12 @@ export interface DatePickerProps extends ViewProps {
+   /** Color of the divider on Android */
+   dividerColor?: string
+ 
++  /**
++   * Number of wheel rows to show on Android. Values are normalized to an odd
++   * number so the selected value remains centered. The default is 3.
++   */
++  visibleItemCount?: number
++
+   /** Color of the android modal buttons */
+   buttonColor?: string
+ }
+diff --git a/node_modules/react-native-date-picker/src/DatePickerAndroid.js b/node_modules/react-native-date-picker/src/DatePickerAndroid.js
+index a8a1e71..6e14076 100644
+--- a/node_modules/react-native-date-picker/src/DatePickerAndroid.js
++++ b/node_modules/react-native-date-picker/src/DatePickerAndroid.js
+@@ -6,7 +6,8 @@ import { getNativeComponent, getNativeModule } from './modules'
+ const NativeComponent = getNativeComponent()
+ const NativeModule = getNativeModule()
+ 
+-const height = 180
++const defaultVisibleItemCount = 3
++const rowHeight = 60
+ const timeModeWidth = 240
+ const defaultWidth = 310
+ 
+@@ -77,7 +78,14 @@ export const DatePickerAndroid = React.memo((props) => {
+ /** @param {PlatformPickerProps} props */
+ const getStyle = (props) => {
+   const width = props.mode === 'time' ? timeModeWidth : defaultWidth
+-  return [{ width, height }, props.style]
++  const visibleItemCount = getVisibleItemCount(props.visibleItemCount)
++  return [{ width, height: rowHeight * visibleItemCount }, props.style]
++}
++
++const getVisibleItemCount = (count) => {
++  if (!Number.isFinite(count)) return defaultVisibleItemCount
++  const roundedCount = Math.max(defaultVisibleItemCount, Math.ceil(count))
++  return roundedCount % 2 === 0 ? roundedCount + 1 : roundedCount
+ }
+ 
+ /** @param {PlatformPickerProps} props */
+diff --git a/node_modules/react-native-date-picker/src/fabric/RNDatePickerNativeComponent.ts b/node_modules/react-native-date-picker/src/fabric/RNDatePickerNativeComponent.ts
+index 456439e..a14e930 100644
+--- a/node_modules/react-native-date-picker/src/fabric/RNDatePickerNativeComponent.ts
++++ b/node_modules/react-native-date-picker/src/fabric/RNDatePickerNativeComponent.ts
+@@ -25,6 +25,7 @@ export interface NativeProps extends ViewProps {
+   timeZoneOffsetInMinutes?: string | null
+   textColor?: string
+   dividerColor?: string
++  visibleItemCount?: Int32
+   buttonColor?: string
+   is24hourSource?: WithDefault<'locale' | 'device', 'device'>
+   theme?: WithDefault<'light' | 'dark' | 'auto', 'auto'>
