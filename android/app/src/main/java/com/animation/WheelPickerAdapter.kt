@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 class WheelPickerAdapter(
     private var items: List<String>,
     private val style: WheelPickerStyle,
-    private var selectedIndex: Int = RecyclerView.NO_POSITION,
+    private val positionMapper: WheelPositionMapper,
 ) : RecyclerView.Adapter<WheelPickerAdapter.ViewHolder>() {
     class ViewHolder(
         val textView: TextView,
@@ -27,58 +27,67 @@ class WheelPickerAdapter(
                     )
 
                 gravity = Gravity.CENTER
+
                 textSize = style.textSize
+
                 setTextColor(style.textColor)
+
                 setBackgroundColor(style.backgroundColor)
             }
 
         return ViewHolder(textView)
     }
 
-    private fun applyStyle(
-        holder: ViewHolder,
-        position: Int,
-    ) {
-        holder.textView.text = items[position]
-
-        val params = holder.textView.layoutParams as RecyclerView.LayoutParams
-        params.height = style.itemHeight
-        holder.textView.layoutParams = params
-
-        holder.textView.textSize = style.textSize
-
-        holder.textView.setTextColor(
-            if (position == selectedIndex) {
-                style.selectedTextColor
-            } else {
-                style.textColor
-            },
-        )
-
-        holder.textView.setBackgroundColor(style.backgroundColor)
-
-        holder.textView.requestLayout()
-    }
-
     override fun onBindViewHolder(
         holder: ViewHolder,
         position: Int,
     ) {
-        applyStyle(holder, position)
+        if (items.isEmpty()) {
+            holder.textView.text = ""
+            return
+        }
+
+        val realIndex =
+            positionMapper.getRealIndex(position)
+
+        holder.textView.text =
+            items[realIndex]
+
+        val params =
+            holder.textView.layoutParams as RecyclerView.LayoutParams
+
+        params.height = style.itemHeight
+
+        holder.textView.layoutParams = params
+
+        holder.textView.textSize = style.textSize
+
+        holder.textView.setTextColor(style.textColor)
+
+        holder.textView.setBackgroundColor(style.backgroundColor)
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemCount(): Int {
+        return positionMapper.getVirtualItemCount()
+    }
 
     fun setItems(data: List<String>) {
         items = data
+
+        positionMapper.setItemCount(data.size)
+
         notifyDataSetChanged()
     }
 
-    fun setSelectedIndex(index: Int) {
-        selectedIndex = index.coerceIn(0, itemCount - 1)
+    fun getRealItemCount(): Int {
+        return items.size
     }
 
-    fun getItem(index: Int): String {
-        return items.getOrElse(index) { "" }
+    fun getItemByRealIndex(realIndex: Int): String {
+        if (items.isEmpty()) {
+            return ""
+        }
+
+        return items[realIndex]
     }
 }

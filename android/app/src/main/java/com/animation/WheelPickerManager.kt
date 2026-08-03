@@ -1,11 +1,13 @@
 package com.animation
 
 import android.graphics.Color
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.uimanager.BaseViewManagerDelegate
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
+import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.viewmanagers.WheelPickerManagerDelegate
 import com.facebook.react.viewmanagers.WheelPickerManagerInterface
 
@@ -26,7 +28,30 @@ class WheelPickerManager :
 
         view.setOnWheelChangeListener { index, value ->
 
-            // We'll dispatch the Fabric event in Step 17.5
+            val reactContext = reactContext
+
+            val surfaceId =
+                UIManagerHelper.getSurfaceId(reactContext)
+
+            val dispatcher =
+                UIManagerHelper.getEventDispatcherForReactTag(
+                    reactContext,
+                    view.id,
+                )
+
+            val payload =
+                Arguments.createMap().apply {
+                    putInt("index", index)
+                    putString("value", value)
+                }
+
+            dispatcher?.dispatchEvent(
+                WheelPickerChangeEvent(
+                    surfaceId,
+                    view.id,
+                    payload,
+                ),
+            )
         }
 
         return view
@@ -34,6 +59,15 @@ class WheelPickerManager :
 
     override fun getDelegate(): BaseViewManagerDelegate<WheelPickerView, *> {
         return delegate
+    }
+
+    override fun getExportedCustomDirectEventTypeConstants(): MutableMap<String, Any> {
+        return mutableMapOf(
+            "onWheelChange" to
+                mutableMapOf(
+                    "registrationName" to "onWheelChange",
+                ),
+        )
     }
 
     override fun setData(

@@ -22,9 +22,13 @@ const WheelPicker = ({
       itemHeight={itemHeight}
       textSize={textSize}
       textColor={textColor}
-       selectedTextColor={selectedTextColor}
-       backgroundColor={backgroundColor}
+      selectedTextColor={selectedTextColor}
+      backgroundColor={backgroundColor}
       visibleItemCount={visibleItemCount}
+      onWheelChange={event => {
+        const { index, value } = event.nativeEvent;
+        console.log(`Selected index: ${index}, value: ${value}`);
+      }}
     />
   );
 };
