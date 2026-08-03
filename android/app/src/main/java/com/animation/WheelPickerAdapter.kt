@@ -35,7 +35,6 @@ class WheelPickerAdapter(
         return ViewHolder(textView)
     }
 
-
     private fun applyStyle(
         holder: ViewHolder,
         position: Int,
@@ -77,5 +76,9 @@ class WheelPickerAdapter(
 
     fun setSelectedIndex(index: Int) {
         selectedIndex = index.coerceIn(0, itemCount - 1)
+    }
+
+    fun getItem(index: Int): String {
+        return items.getOrElse(index) { "" }
     }
 }

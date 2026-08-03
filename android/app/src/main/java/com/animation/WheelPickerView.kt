@@ -28,6 +28,8 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
     private var initialSelectedIndex = 0
     private var selectedIndex = RecyclerView.NO_POSITION
 
+    private var onWheelChange: ((Int, String) -> Unit)? = null
+
     init {
         recyclerView.layoutManager = LinearLayoutManager(context)
         recyclerView.adapter = adapter
@@ -47,6 +49,7 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
                     dx: Int,
                     dy: Int,
                 ) {
+                    updateVisibleItems()
                     updateSelectedItem()
                 }
 
@@ -118,11 +121,14 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
     }
 
     private fun updateVisibleItems() {
+        val recyclerCenter = recyclerView.height / 2f
+
         for (i in 0 until recyclerView.childCount) {
             val child = recyclerView.getChildAt(i)
 
             val holder =
-                recyclerView.getChildViewHolder(child) as WheelPickerAdapter.ViewHolder
+                recyclerView.getChildViewHolder(child)
+                    as WheelPickerAdapter.ViewHolder
 
             val position = holder.bindingAdapterPosition
 
@@ -141,6 +147,35 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
             )
 
             holder.textView.setBackgroundColor(style.backgroundColor)
+
+            // ------------------------------------
+            // Scale
+            // ------------------------------------
+
+            val childCenter =
+                (child.top + child.bottom) / 2f
+
+            val distance =
+                kotlin.math.abs(childCenter - recyclerCenter)
+
+            val fraction =
+                (distance / recyclerCenter)
+                    .coerceIn(0f, 1f)
+
+            val scale =
+                1.15f - (0.35f * fraction)
+
+            child.scaleX = scale
+            child.scaleY = scale
+
+            // ------------------------------------
+// Alpha
+// ------------------------------------
+
+            val alpha =
+                1f - (0.70f * fraction)
+
+            child.alpha = alpha
         }
     }
 
@@ -157,6 +192,8 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
             adapter.setSelectedIndex(centered)
 
             updateVisibleItems()
+
+            dispatchWheelChange(centered)
         }
     }
 
@@ -241,5 +278,52 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
     }
 
     private fun snapToCenter() {
+        val position = findCenteredPosition()
+
+        if (position == RecyclerView.NO_POSITION) {
+            return
+        }
+
+        val child =
+            layoutManager.findViewByPosition(position)
+                ?: return
+
+        val recyclerCenter = recyclerView.height / 2
+
+        val childCenter =
+            (child.top + child.bottom) / 2
+
+        val distance =
+            childCenter - recyclerCenter
+
+        Log.d(
+            "WheelPicker",
+            "Snap distance = $distance",
+        )
+
+        if (distance != 0) {
+            recyclerView.smoothScrollBy(
+                0,
+                distance,
+            )
+        }
+    }
+
+    // Helper function to dispatch the wheel change event
+    private fun dispatchWheelChange(index: Int) {
+        if (index == RecyclerView.NO_POSITION) {
+            return
+        }
+
+        val value = adapter.getItem(index)
+
+        onWheelChange?.invoke(index, value)
+    }
+
+    fun setOnWheelChangeListener(listener: (Int, String) -> Unit) {
+        onWheelChange = listener
+    }
+
+    private fun updateItemTransforms() {
     }
 }

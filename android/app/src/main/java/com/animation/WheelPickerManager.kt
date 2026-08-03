@@ -1,7 +1,6 @@
 package com.animation
 
 import android.graphics.Color
-import android.util.Log
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.uimanager.BaseViewManagerDelegate
@@ -23,7 +22,14 @@ class WheelPickerManager :
     override fun getName(): String = NAME
 
     override fun createViewInstance(reactContext: ThemedReactContext): WheelPickerView {
-        return WheelPickerView(reactContext)
+        val view = WheelPickerView(reactContext)
+
+        view.setOnWheelChangeListener { index, value ->
+
+            // We'll dispatch the Fabric event in Step 17.5
+        }
+
+        return view
     }
 
     override fun getDelegate(): BaseViewManagerDelegate<WheelPickerView, *> {
