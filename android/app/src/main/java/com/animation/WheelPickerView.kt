@@ -47,6 +47,10 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
         )
 
     // private var pendingSelection = 0
+    private var lastDispatchedIndex = RecyclerView.NO_POSITION
+
+    private var suppressNextEvent = true
+
     private var selectedIndex = RecyclerView.NO_POSITION
 
     private var onWheelChange: ((Int, String) -> Unit)? = null
@@ -72,7 +76,17 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
                     updateSelectedItem()
                 },
                 onIdleCallback = {
-                    scrollController.onScrollIdle(style.itemHeight)
+
+                    scrollController.onScrollIdle(
+                        style.itemHeight,
+                    )
+
+                    val selected =
+                        scrollController.getCenteredRealIndex()
+
+                    if (selected != RecyclerView.NO_POSITION) {
+                        notifySelectionFinished(selected)
+                    }
                 },
             ),
         )
@@ -125,7 +139,7 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
 
         updateVisibleItems()
 
-        dispatchWheelChange(realIndex)
+        // dispatchWheelChange(realIndex)
     }
 
     override fun onMeasure(
@@ -240,5 +254,20 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
 
     fun setOnWheelChangeListener(listener: (Int, String) -> Unit) {
         onWheelChange = listener
+    }
+
+    private fun notifySelectionFinished(index: Int) {
+        if (suppressNextEvent) {
+            suppressNextEvent = false
+            lastDispatchedIndex = index
+            return
+        }
+
+        if (index == lastDispatchedIndex) {
+            return
+        }
+
+        lastDispatchedIndex = index
+        dispatchWheelChange(index)
     }
 }

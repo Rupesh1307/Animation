@@ -160,14 +160,20 @@ class WheelScrollController(
     /**
      * Call when scrolling stops.
      */
-    fun onScrollIdle(itemHeight: Int) {
+    fun onScrollIdle(itemHeight: Int): Int {
         val centered =
             findCenteredAdapterPosition()
+
+        if (centered == RecyclerView.NO_POSITION) {
+            return RecyclerView.NO_POSITION
+        }
 
         snapToCenter(centered)
 
         recyclerView.post {
             recenterIfNeeded(itemHeight)
         }
+
+        return getCenteredRealIndex()
     }
 }
