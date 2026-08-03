@@ -13,6 +13,8 @@ const WheelPicker = ({
   selectedTextColor,
   backgroundColor,
   visibleItemCount,
+  loop = true,
+  onWheelChange,
 }: WheelPickerProps) => {
   return (
     <NativeWheelPicker
@@ -25,10 +27,8 @@ const WheelPicker = ({
       selectedTextColor={selectedTextColor}
       backgroundColor={backgroundColor}
       visibleItemCount={visibleItemCount}
-      onWheelChange={event => {
-        const { index, value } = event.nativeEvent;
-        console.log(`Selected index: ${index}, value: ${value}`);
-      }}
+      loop={loop}
+      onWheelChange={onWheelChange}
     />
   );
 };

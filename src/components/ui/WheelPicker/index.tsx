@@ -15,7 +15,12 @@ function WheelPickerComponent() {
         textColor="blue"
         selectedTextColor="red"
         backgroundColor="#EEEEEE"
-        visibleItemCount={3}
+        visibleItemCount={5}
+        loop={true}
+        onWheelChange={event => {
+          const { index, value } = event.nativeEvent;
+          console.log(`Selected index: ${index}, value: ${value}`);
+        }}
       />
     </View>
   );

@@ -51,6 +51,8 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
 
     private var suppressNextEvent = true
 
+    private var loop = true
+
     private var selectedIndex = RecyclerView.NO_POSITION
 
     private var onWheelChange: ((Int, String) -> Unit)? = null
@@ -98,6 +100,34 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
         return (dp * resources.displayMetrics.density).toInt()
     }
 
+    private fun getEffectiveVisibleItemCount(): Int {
+        val itemCount = adapter.getRealItemCount()
+
+        if (itemCount == 0) {
+            return style.visibleItemCount
+        }
+
+        // If looping is enabled, allow any requested count
+        if (style.loop) {
+            return style.visibleItemCount
+        }
+
+        var count =
+            minOf(
+                style.visibleItemCount,
+                itemCount,
+            )
+
+        // Keep the wheel symmetric
+        if (count % 2 == 0) {
+            count--
+        }
+
+        return count.coerceAtLeast(1)
+    }
+
+    
+
     private fun refreshStyle() {
         adapter.notifyDataSetChanged()
     }
@@ -106,7 +136,8 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
         post {
             val params = recyclerView.layoutParams
 
-            params.height = style.itemHeight * style.visibleItemCount
+            params.height =
+                style.itemHeight * getEffectiveVisibleItemCount()
 
             recyclerView.layoutParams = params
 
@@ -147,7 +178,7 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
         heightMeasureSpec: Int,
     ) {
         val desiredHeight =
-            style.itemHeight * style.visibleItemCount
+            style.itemHeight * getEffectiveVisibleItemCount()
 
         val width = MeasureSpec.getSize(widthMeasureSpec)
 
@@ -164,6 +195,8 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
 
     fun setItems(items: List<String>) {
         adapter.setItems(items)
+
+        updateWheelSize()
 
         initializer.reset()
 
@@ -237,7 +270,7 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
     }
 
     fun setVisibleItemCount(count: Int) {
-        style.visibleItemCount = count
+        style.visibleItemCount = count.coerceAtLeast(1)
         updateWheelSize()
     }
 
@@ -269,5 +302,14 @@ class WheelPickerView(context: Context) : FrameLayout(context) {
 
         lastDispatchedIndex = index
         dispatchWheelChange(index)
+    }
+
+    fun setLoop(loop: Boolean) {
+        style.loop = loop
+
+        positionMapper.setLoop(loop)
+
+        adapter.notifyDataSetChanged()
+        updateWheelSize()
     }
 }

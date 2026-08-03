@@ -45,4 +45,18 @@ export interface WheelPickerProps {
    * Style applied to the native component.
    */
   style?: StyleProp<ViewStyle>;
+
+  /**
+   * Whether the wheel picker should loop infinitely.
+   * Defaults to true.
+   */
+  loop?: boolean;
+
+  /**
+   * Callback function that is called when the selected item changes.
+   * The event object contains the selected index and value.
+   */
+  onWheelChange?: (event: {
+    nativeEvent: { index: number; value: string };
+  }) => void;
 }

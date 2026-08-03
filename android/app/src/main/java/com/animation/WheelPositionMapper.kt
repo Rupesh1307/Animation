@@ -15,6 +15,8 @@ class WheelPositionMapper {
 
     private var itemCount = 0
 
+    private var loop = true
+
     fun setItemCount(count: Int) {
         itemCount = count
     }
@@ -27,7 +29,15 @@ class WheelPositionMapper {
      * Adapter size seen by RecyclerView.
      */
     fun getVirtualItemCount(): Int {
-        return if (itemCount == 0) 0 else VIRTUAL_ITEM_COUNT
+        if (itemCount == 0) {
+            return 0
+        }
+
+        return if (loop) {
+            VIRTUAL_ITEM_COUNT
+        } else {
+            itemCount
+        }
     }
 
     /**
@@ -36,6 +46,13 @@ class WheelPositionMapper {
     fun getRealIndex(adapterPosition: Int): Int {
         if (itemCount == 0) {
             return 0
+        }
+
+        if (!loop) {
+            return adapterPosition.coerceIn(
+                0,
+                itemCount - 1,
+            )
         }
 
         var index = adapterPosition % itemCount
@@ -62,9 +79,13 @@ class WheelPositionMapper {
                 itemCount - 1,
             )
 
-        return VIRTUAL_CENTER -
-            (VIRTUAL_CENTER % itemCount) +
+        return if (loop) {
+            VIRTUAL_CENTER -
+                (VIRTUAL_CENTER % itemCount) +
+                safeIndex
+        } else {
             safeIndex
+        }
     }
 
     /**
@@ -83,11 +104,23 @@ class WheelPositionMapper {
      * In practice this almost never happens.
      */
     fun shouldRecenter(adapterPosition: Int): Boolean {
+        if (!loop) {
+            return false
+        }
+
         val distance =
             kotlin.math.abs(
                 adapterPosition - VIRTUAL_CENTER,
             )
 
         return distance > 1_000_000
+    }
+
+    /**
+     * Sets whether the wheel should loop or not.
+     */
+
+    fun setLoop(loop: Boolean) {
+        this.loop = loop
     }
 }

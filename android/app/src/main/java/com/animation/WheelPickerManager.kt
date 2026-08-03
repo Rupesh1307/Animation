@@ -137,4 +137,11 @@ class WheelPickerManager :
     ) {
         view.setVisibleItemCount(value)
     }
+
+    override fun setLoop(
+        view: WheelPickerView,
+        value: Boolean,
+    ) {
+        view.setLoop(value)
+    }
 }

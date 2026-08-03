@@ -53,6 +53,11 @@ export interface NativeProps extends ViewProps {
   visibleItemCount?: Int32;
 
   /**
+   * Whether the wheel picker should loop infinitely.
+   */
+  loop?: boolean;
+
+  /**
    * Called when the selected item changes.
    */
   onWheelChange?: DirectEventHandler<WheelPickerChangeEvent>;

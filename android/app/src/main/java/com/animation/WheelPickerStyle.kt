@@ -10,5 +10,6 @@ data class WheelPickerStyle(
     var selectedTextColor: Int = Color.BLACK,
     var backgroundColor: Int = Color.TRANSPARENT,
     var typeface: Typeface? = null,
-    var visibleItemCount: Int = 5
+    var visibleItemCount: Int = 5,
+    var loop: Boolean = true
 )
